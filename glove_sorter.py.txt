@@ -1,0 +1,71 @@
+import sys
+import cv2
+import numpy as np
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QLabel, QPushButton,
+    QVBoxLayout, QWidget, QTextEdit
+)
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import QTimer, Qt
+
+# ---------------------- 地瓜机器人RDK 机械臂模拟 ----------------------
+class DiguaRobotArm:
+    def __init__(self):
+        self.pos = (320, 240)  # 初始位置（画面中心）
+        self.gripper = 0        # 0=张开, 1=闭合
+
+    def move_to(self, x, y):
+        print(f"机械臂移动到: ({x}, {y})")
+        self.pos = (x, y)
+
+    def grasp(self):
+        self.gripper = 1
+        print("机械臂闭合抓取")
+
+    def release(self):
+        self.gripper = 0
+        print("机械臂张开释放")
+
+    def sort_to(self, target):
+        print(f"分拣至: {target}")
+
+# ---------------------- 手套识别（OpenCV） ----------------------
+def detect_glove(frame):
+    """简单颜色识别：检测蓝色手套（可改HSV范围适配你的手套）"""
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # 蓝色手套HSV范围（根据实际调整）
+    lower_blue = np.array([90, 50, 50])
+    upper_blue = np.array([130, 255, 255])
+    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    # 找轮廓
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        c = max(contours, key=cv2.contourArea)
+        if cv2.contourArea(c) > 500:
+            x, y, w, h = cv2.boundingRect(c)
+            cx = x + w//2
+            cy = y + h//2
+            return (cx, cy, x, y, w, h)  # 中心+框
+    return None
+
+# ---------------------- PyQt5 主界面 ----------------------
+class GloveSorterUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("地瓜机器人 - 手套分拣系统")
+        self.setGeometry(100, 100, 800, 600)
+
+        # 初始化
+        self.robot = DiguaRobotArm()
+        self.cap = cv2.VideoCapture(0)  # 摄像头0
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_frame)
+        self.is_running = False
+
+        # 界面
+        central = QWidget()
+        self.setCentralWidget(central)
+        layout = QVBoxLayout(central)
+
+        self.img_label = QLabel()
+        self.img_label.setAlig
