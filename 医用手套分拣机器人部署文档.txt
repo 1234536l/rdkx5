@@ -1,0 +1,23 @@
+# 医用手套分拣机器人部署文档
+## 硬件接线
+1. USB工业摄像头接入RDK X5 USB口
+2. 协作机械臂网线连接开发板网口
+3. 柔性气动夹爪控制线接入机械臂IO模块
+
+## 相机标定步骤
+1. 打印棋盘格标定板，多角度拍摄20张照片
+2. 修改glove_detect.py内cam_intrinsic、cam2robot_mat为标定后参数
+3. 固定相机位置，避免坐标偏移
+
+## 软件运行步骤
+1. 安装Python依赖：pip3 install -r requirements.txt
+2. 编译TROS机械臂工程
+colcon build --packages-select tros
+source install/setup.bash
+3. 终端1启动视觉识别：python3 samples/vision/glove_detect.py
+4. 终端2启动机械臂分拣：ros2 run tros arm_grasp_node
+
+## 参数调试说明
+1. 识别置信度阈值：代码内conf>0.6，光线差可下调至0.45
+2. 机械臂安全高度safe_z：0.42m，防止碰撞工作台
+3. 夹爪开合延时0.3~0.4s，适配轻薄医用手套夹持
